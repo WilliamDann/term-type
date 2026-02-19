@@ -116,6 +116,16 @@ func buildResults(app *tview.Application, pages *tview.Pages, state *TestState, 
 		SetTextColor(colorSubtle)
 	helpView.SetBackgroundColor(colorBackground)
 
+	// WPM graph
+	graph := NewWPMGraph(state.WPMSnapshots)
+	graph.SetBackgroundColor(colorBackground)
+
+	graphWrapper := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(graph, 60, 0, false).
+		AddItem(nil, 0, 1, false)
+	graphWrapper.SetBackgroundColor(colorBackground)
+
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
 		AddItem(wpmView, 2, 0, false).
@@ -125,6 +135,8 @@ func buildResults(app *tview.Application, pages *tview.Pages, state *TestState, 
 		AddItem(accLabel, 1, 0, false).
 		AddItem(nil, 1, 0, false).
 		AddItem(statsView, 1, 0, false).
+		AddItem(nil, 1, 0, false).
+		AddItem(graphWrapper, 0, 2, false).
 		AddItem(nil, 1, 0, false).
 		AddItem(helpView, 1, 0, true).
 		AddItem(nil, 0, 1, false)

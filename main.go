@@ -271,19 +271,76 @@ func main() {
 
 	// startTestWithText starts a typing test using provided text (for piped input)
 	startTestWithText = func(text string) {
+		// Stop any existing timer
+		if stopTimer != nil {
+			close(stopTimer)
+			stopTimer = nil
+		}
+		if ticker != nil {
+			ticker.Stop()
+			ticker = nil
+		}
+
 		wordCount := len(strings.Fields(text))
 		currentState = NewTestState(text, false, 0, wordCount)
 		currentState.PipedText = text
 
 		onFinish := func() {
+			if stopTimer != nil {
+				close(stopTimer)
+				stopTimer = nil
+			}
+			if ticker != nil {
+				ticker.Stop()
+				ticker = nil
+			}
 			showResults()
 		}
 		onEscape := func() {
+			if stopTimer != nil {
+				close(stopTimer)
+				stopTimer = nil
+			}
+			if ticker != nil {
+				ticker.Stop()
+				ticker = nil
+			}
 			pages.SwitchToPage("menu")
 		}
 
 		typingBox := NewTypingBox(currentState, onFinish, onEscape)
 		pages.AddAndSwitchToPage("typing", typingBox, true)
+
+		// Start WPM sampling goroutine
+		stopTimer = make(chan struct{})
+		go func(state *TestState, stop chan struct{}) {
+			for !state.Started {
+				select {
+				case <-stop:
+					return
+				case <-time.After(50 * time.Millisecond):
+				}
+			}
+
+			wpmTicker := time.NewTicker(1 * time.Second)
+			defer wpmTicker.Stop()
+
+			for {
+				select {
+				case <-stop:
+					return
+				case <-wpmTicker.C:
+					if state.Finished {
+						return
+					}
+					state.WPMSnapshots = append(state.WPMSnapshots, WPMSnapshot{
+						Elapsed: state.Elapsed().Seconds(),
+						WPM:     state.WPM(),
+						Errors:  state.WrongChars(),
+					})
+				}
+			}
+		}(currentState, stopTimer)
 	}
 
 	startTest = func(timedMode bool, timeLimitSec int, wordCount int) {
@@ -328,44 +385,55 @@ func main() {
 
 		pages.AddAndSwitchToPage("typing", typingBox, true)
 
-		if timedMode {
-			// Start a goroutine that watches for the test to start, then counts down
-			stopTimer = make(chan struct{})
-			go func(state *TestState, stop chan struct{}) {
-				// Wait for test to start
-				for !state.Started {
-					select {
-					case <-stop:
-						return
-					case <-time.After(50 * time.Millisecond):
-					}
+		// Start a goroutine for WPM sampling (both modes) and timed countdown
+		stopTimer = make(chan struct{})
+		go func(state *TestState, stop chan struct{}) {
+			// Wait for test to start
+			for !state.Started {
+				select {
+				case <-stop:
+					return
+				case <-time.After(50 * time.Millisecond):
 				}
+			}
 
-				// Start the countdown ticker
-				t := time.NewTicker(100 * time.Millisecond)
-				defer t.Stop()
+			// Ticker for UI updates and time checks (100ms)
+			t := time.NewTicker(100 * time.Millisecond)
+			defer t.Stop()
 
-				for {
-					select {
-					case <-stop:
+			// WPM sampling every 1s
+			wpmTicker := time.NewTicker(1 * time.Second)
+			defer wpmTicker.Stop()
+
+			for {
+				select {
+				case <-stop:
+					return
+				case <-wpmTicker.C:
+					if state.Finished {
 						return
-					case <-t.C:
-						if state.Finished {
-							return
-						}
-						if state.TimeRemaining() <= 0 {
-							app.QueueUpdateDraw(func() {
-								if !state.Finished {
-									onFinish()
-								}
-							})
-							return
-						}
-						app.QueueUpdateDraw(func() {})
 					}
+					state.WPMSnapshots = append(state.WPMSnapshots, WPMSnapshot{
+						Elapsed: state.Elapsed().Seconds(),
+						WPM:     state.WPM(),
+						Errors:  state.WrongChars(),
+					})
+				case <-t.C:
+					if state.Finished {
+						return
+					}
+					if timedMode && state.TimeRemaining() <= 0 {
+						app.QueueUpdateDraw(func() {
+							if !state.Finished {
+								onFinish()
+							}
+						})
+						return
+					}
+					app.QueueUpdateDraw(func() {})
 				}
-			}(currentState, stopTimer)
-		}
+			}
+		}(currentState, stopTimer)
 	}
 
 	menu := buildMenu(app, pages, startTest, showHistory, showThemes)

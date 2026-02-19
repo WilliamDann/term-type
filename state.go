@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type WPMSnapshot struct {
+	Elapsed float64
+	WPM     float64
+	Errors  int
+}
+
 type TestState struct {
 	Target    string // the full target text
 	Input     []rune // what the user has typed so far
@@ -18,6 +24,8 @@ type TestState struct {
 	TimeLimitSec int
 	WordCount    int
 	PipedText    string // original piped text for retry
+
+	WPMSnapshots []WPMSnapshot
 }
 
 func NewTestState(target string, timedMode bool, timeLimitSec int, wordCount int) *TestState {
