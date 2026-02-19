@@ -200,17 +200,25 @@ func buildHistory(app *tview.Application, pages *tview.Pages) *tview.Flex {
 		SetTextColor(colorSubtle)
 	helpView.SetBackgroundColor(colorBackground)
 
+	lpad := tview.NewBox().SetBackgroundColor(colorBackground)
+	rpad := tview.NewBox().SetBackgroundColor(colorBackground)
+	innerFlex := tview.NewFlex().
+		AddItem(lpad, 2, 0, false).
+		AddItem(table, 0, 1, true).
+		AddItem(rpad, 2, 0, false)
+	innerFlex.SetBackgroundColor(colorBackground)
+
+	topPad := tview.NewBox().SetBackgroundColor(colorBackground)
+	midPad := tview.NewBox().SetBackgroundColor(colorBackground)
+	botPad := tview.NewBox().SetBackgroundColor(colorBackground)
+
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 1, 0, false).
+		AddItem(topPad, 1, 0, false).
 		AddItem(title, 1, 0, false).
-		AddItem(nil, 1, 0, false).
-		AddItem(tview.NewFlex().
-			AddItem(nil, 2, 0, false).
-			AddItem(table, 0, 1, true).
-			AddItem(nil, 2, 0, false),
-			0, 1, true).
+		AddItem(midPad, 1, 0, false).
+		AddItem(innerFlex, 0, 1, true).
 		AddItem(helpView, 1, 0, false).
-		AddItem(nil, 1, 0, false)
+		AddItem(botPad, 1, 0, false)
 	flex.SetBackgroundColor(colorBackground)
 
 	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

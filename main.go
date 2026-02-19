@@ -1,13 +1,76 @@
 package main
 
 import (
+	"fmt"
 	"math"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/rivo/tview"
 )
 
+func usage() {
+	fmt.Fprintf(os.Stderr, `Usage: term-type [mode]
+
+Modes:
+  (none)       Open interactive menu
+  time N       Timed mode (N = 15, 30, or 60 seconds)
+  words N      Word count mode (N = 10, 25, or 50)
+  history      Show history
+
+Examples:
+  term-type
+  term-type time 30
+  term-type words 25
+  term-type history
+`)
+	os.Exit(1)
+}
+
+func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) {
+	args := os.Args[1:]
+	if len(args) == 0 {
+		return "menu", false, 0, 0
+	}
+
+	switch args[0] {
+	case "time", "t":
+		if len(args) < 2 {
+			usage()
+		}
+		n, err := strconv.Atoi(args[1])
+		if err != nil || (n != 15 && n != 30 && n != 60) {
+			fmt.Fprintf(os.Stderr, "Error: time must be 15, 30, or 60\n")
+			os.Exit(1)
+		}
+		// Generate enough words for the time limit
+		wc := map[int]int{15: 50, 30: 100, 60: 200}[n]
+		return "test", true, n, wc
+	case "words", "w":
+		if len(args) < 2 {
+			usage()
+		}
+		n, err := strconv.Atoi(args[1])
+		if err != nil || (n != 10 && n != 25 && n != 50) {
+			fmt.Fprintf(os.Stderr, "Error: words must be 10, 25, or 50\n")
+			os.Exit(1)
+		}
+		return "test", false, 0, n
+	case "history", "h":
+		return "history", false, 0, 0
+	case "--help", "-h":
+		usage()
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown mode: %s\n", args[0])
+		usage()
+	}
+	return "menu", false, 0, 0
+}
+
 func main() {
+	mode, argTimedMode, argTimeLimitSec, argWordCount := parseArgs()
+
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 
@@ -134,6 +197,13 @@ func main() {
 
 	menu := buildMenu(app, pages, startTest, showHistory)
 	pages.AddPage("menu", menu, true, true)
+
+	switch mode {
+	case "test":
+		startTest(argTimedMode, argTimeLimitSec, argWordCount)
+	case "history":
+		showHistory()
+	}
 
 	app.SetRoot(pages, true)
 	app.EnableMouse(false)
