@@ -33,7 +33,8 @@ term-type                        # interactive menu
 term-type time 30                # timed mode (any number of seconds)
 term-type words 25               # word count mode (any number of words)
 term-type history                # view past results
-term-type clear                  # clear all history
+term-type clear history           # clear all history
+term-type clear theme            # reset theme to default
 term-type themes                 # list available themes
 term-type --theme gruvbox        # use a specific theme
 echo "custom text" | term-type   # type piped input

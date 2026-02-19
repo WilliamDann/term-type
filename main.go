@@ -22,7 +22,8 @@ Modes:
   time N       Timed mode (N seconds)
   words N      Word count mode (N words)
   history      Show history
-  clear        Clear history
+  clear history  Clear history
+  clear theme    Reset theme to default
   themes       List available themes
 
 Options:
@@ -101,11 +102,28 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int, 
 		}
 		os.Exit(0)
 	case "clear":
-		if err := clearHistory(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error clearing history: %v\n", err)
+		if len(args) < 2 {
+			fmt.Fprintf(os.Stderr, "Usage: term-type clear <history|theme>\n")
 			os.Exit(1)
 		}
-		fmt.Println("History cleared.")
+		switch args[1] {
+		case "history":
+			if err := clearHistory(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error clearing history: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("History cleared.")
+		case "theme":
+			if err := clearThemePreference(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error clearing theme: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Theme reset to default.")
+		default:
+			fmt.Fprintf(os.Stderr, "Unknown clear target: %s\n", args[1])
+			fmt.Fprintf(os.Stderr, "Usage: term-type clear <history|theme>\n")
+			os.Exit(1)
+		}
 		os.Exit(0)
 	case "--help", "-h":
 		usage()

@@ -202,6 +202,14 @@ func saveThemePreference(name string) {
 	os.WriteFile(path, []byte(name+"\n"), 0o644)
 }
 
+func clearThemePreference() error {
+	path := themeConfigPath()
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 func resolveThemeName(name string) string {
 	if name != "" {
 		return name
