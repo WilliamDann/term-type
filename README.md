@@ -15,7 +15,7 @@ A monkeytype-inspired typing speed test for your terminal, built with Go and [tv
 ## Install
 
 ```bash
-go install github.com/you/term-type@latest
+go install github.com/WilliamDann/term-type@latest
 ```
 
 Or build from source:
