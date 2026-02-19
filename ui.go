@@ -151,7 +151,7 @@ func buildResults(app *tview.Application, pages *tview.Pages, state *TestState, 
 	return flex
 }
 
-func buildHistory(app *tview.Application, pages *tview.Pages) *tview.Flex {
+func buildHistory(app *tview.Application, pages *tview.Pages, onClear ...func()) *tview.Flex {
 	table := tview.NewTable().
 		SetFixed(1, 0).
 		SetSelectable(true, false)
@@ -198,8 +198,12 @@ func buildHistory(app *tview.Application, pages *tview.Pages) *tview.Flex {
 		SetTextColor(colorAccent)
 	title.SetBackgroundColor(colorBackground)
 
+	helpText := "[esc] back to menu"
+	if len(results) > 0 && len(onClear) > 0 {
+		helpText = "[esc] back to menu  [c] clear history"
+	}
 	helpView := tview.NewTextView().
-		SetText("[esc] back to menu").
+		SetText(helpText).
 		SetTextAlign(tview.AlignCenter).
 		SetTextColor(colorSubtle)
 	helpView.SetBackgroundColor(colorBackground)
@@ -228,6 +232,11 @@ func buildHistory(app *tview.Application, pages *tview.Pages) *tview.Flex {
 	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			pages.SwitchToPage("menu")
+			return nil
+		}
+		if event.Key() == tcell.KeyRune && event.Rune() == 'c' && len(onClear) > 0 {
+			clearHistory()
+			onClear[0]()
 			return nil
 		}
 		return event

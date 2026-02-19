@@ -56,3 +56,11 @@ func saveResult(r Result) error {
 	}
 	return os.WriteFile(path, data, 0o644)
 }
+
+func clearHistory() error {
+	path := historyPath()
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}

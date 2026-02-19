@@ -22,6 +22,7 @@ Modes:
   time N       Timed mode (N seconds)
   words N      Word count mode (N words)
   history      Show history
+  clear        Clear history
 
 Piped input:
   echo "custom text" | term-type
@@ -32,6 +33,7 @@ Examples:
   term-type time 30
   term-type words 25
   term-type history
+  term-type clear
 `)
 	os.Exit(1)
 }
@@ -67,6 +69,13 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) 
 		return "test", false, 0, n
 	case "history", "h":
 		return "history", false, 0, 0
+	case "clear":
+		if err := clearHistory(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error clearing history: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("History cleared.")
+		os.Exit(0)
 	case "--help", "-h":
 		usage()
 	default:
@@ -160,7 +169,9 @@ func main() {
 	var showHistory func()
 
 	showHistory = func() {
-		histPage := buildHistory(app, pages)
+		histPage := buildHistory(app, pages, func() {
+			showHistory()
+		})
 		pages.AddAndSwitchToPage("history", histPage, true)
 	}
 

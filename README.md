@@ -33,6 +33,7 @@ term-type                # interactive menu
 term-type time 30        # timed mode (any number of seconds)
 term-type words 25       # word count mode (any number of words)
 term-type history        # view past results
+term-type clear          # clear all history
 echo "custom text" | term-type   # type piped input
 cat quote.txt | term-type        # type from a file
 ```
@@ -51,6 +52,7 @@ Short aliases `t`, `w`, `h` also work (e.g. `term-type t 15`).
 | `Enter` | Retry (on results screen) |
 | `Tab` | Back to menu (on results screen) |
 | `h` | View history |
+| `c` | Clear history (on history screen) |
 | `q` | Quit |
 
 ## How WPM is calculated
