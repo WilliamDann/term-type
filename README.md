@@ -21,7 +21,7 @@ go install github.com/WilliamDann/term-type@latest
 Or build from source:
 
 ```bash
-git clone https://github.com/you/term-type.git
+git clone https://github.com/WilliamDann/term-type.git
 cd term-type
 go install .
 ```
