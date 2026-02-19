@@ -132,7 +132,7 @@ func main() {
 		}
 	}
 
-	menu := buildMenu(app, pages, startTest)
+	menu := buildMenu(app, pages, startTest, showHistory)
 	pages.AddPage("menu", menu, true, true)
 
 	app.SetRoot(pages, true)

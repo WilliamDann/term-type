@@ -9,7 +9,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func buildMenu(app *tview.Application, pages *tview.Pages, startTest func(timedMode bool, timeLimitSec int, wordCount int)) *tview.Flex {
+func buildMenu(app *tview.Application, pages *tview.Pages, startTest func(timedMode bool, timeLimitSec int, wordCount int), showHistory func()) *tview.Flex {
 	list := tview.NewList().
 		AddItem("Time 15s", "Timed mode - 15 seconds", '1', func() {
 			startTest(true, 15, 50)
@@ -30,7 +30,7 @@ func buildMenu(app *tview.Application, pages *tview.Pages, startTest func(timedM
 			startTest(false, 0, 50)
 		}).
 		AddItem("History", "View past results", 'h', func() {
-			pages.SwitchToPage("history")
+			showHistory()
 		}).
 		AddItem("Quit", "Exit the application", 'q', func() {
 			app.Stop()
