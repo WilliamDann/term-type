@@ -8,16 +8,15 @@ import (
 	"github.com/rivo/tview"
 )
 
-// Serika Dark color palette
 var (
-	colorPending    = tcell.NewRGBColor(0x64, 0x66, 0x69)
-	colorCorrect    = tcell.NewRGBColor(0xD1, 0xD0, 0xC5)
-	colorWrongFg    = tcell.NewRGBColor(0xCA, 0x47, 0x54)
-	colorWrongBg    = tcell.NewRGBColor(0x3A, 0x1C, 0x20)
-	colorCursor     = tcell.NewRGBColor(0xE2, 0xB7, 0x14)
-	colorAccent     = tcell.NewRGBColor(0xE2, 0xB7, 0x14)
-	colorBackground = tcell.NewRGBColor(0x32, 0x36, 0x37)
-	colorSubtle     = tcell.NewRGBColor(0x64, 0x66, 0x69)
+	colorPending    tcell.Color
+	colorCorrect    tcell.Color
+	colorWrongFg    tcell.Color
+	colorWrongBg    tcell.Color
+	colorCursor     tcell.Color
+	colorAccent     tcell.Color
+	colorBackground tcell.Color
+	colorSubtle     tcell.Color
 )
 
 type TypingBox struct {

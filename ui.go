@@ -9,7 +9,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func buildMenu(app *tview.Application, pages *tview.Pages, startTest func(timedMode bool, timeLimitSec int, wordCount int), showHistory func()) *tview.Flex {
+func buildMenu(app *tview.Application, pages *tview.Pages, startTest func(timedMode bool, timeLimitSec int, wordCount int), showHistory func(), showThemes func()) *tview.Flex {
 	list := tview.NewList().
 		AddItem("Time 15s", "Timed mode - 15 seconds", '1', func() {
 			startTest(true, 15, 50)
@@ -31,6 +31,9 @@ func buildMenu(app *tview.Application, pages *tview.Pages, startTest func(timedM
 		}).
 		AddItem("History", "View past results", 'h', func() {
 			showHistory()
+		}).
+		AddItem("Theme", "Change color theme", 't', func() {
+			showThemes()
 		}).
 		AddItem("Quit", "Exit the application", 'q', func() {
 			app.Stop()
@@ -237,6 +240,60 @@ func buildHistory(app *tview.Application, pages *tview.Pages, onClear ...func())
 		if event.Key() == tcell.KeyRune && event.Rune() == 'c' && len(onClear) > 0 {
 			clearHistory()
 			onClear[0]()
+			return nil
+		}
+		return event
+	})
+
+	return flex
+}
+
+func buildThemePicker(app *tview.Application, pages *tview.Pages, onSelect func(string)) *tview.Flex {
+	list := tview.NewList()
+
+	for i, name := range themeOrder {
+		shortcut := rune('a' + i)
+		n := name // capture for closure
+		list.AddItem(name, "", shortcut, func() {
+			onSelect(n)
+		})
+	}
+
+	list.SetBackgroundColor(colorBackground)
+	list.SetMainTextColor(colorCorrect)
+	list.SetSecondaryTextColor(colorSubtle)
+	list.SetSelectedTextColor(colorBackground)
+	list.SetSelectedBackgroundColor(colorAccent)
+	list.SetShortcutColor(colorAccent)
+
+	title := tview.NewTextView().
+		SetText("Theme").
+		SetTextAlign(tview.AlignCenter).
+		SetTextColor(colorAccent)
+	title.SetBackgroundColor(colorBackground)
+
+	helpView := tview.NewTextView().
+		SetText("[esc] back to menu").
+		SetTextAlign(tview.AlignCenter).
+		SetTextColor(colorSubtle)
+	helpView.SetBackgroundColor(colorBackground)
+
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(nil, 0, 1, false).
+		AddItem(title, 1, 0, false).
+		AddItem(nil, 1, 0, false).
+		AddItem(tview.NewFlex().
+			AddItem(nil, 0, 1, false).
+			AddItem(list, 40, 0, true).
+			AddItem(nil, 0, 1, false),
+			0, 1, true).
+		AddItem(helpView, 1, 0, false).
+		AddItem(nil, 0, 1, false)
+	flex.SetBackgroundColor(colorBackground)
+
+	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages.SwitchToPage("menu")
 			return nil
 		}
 		return event

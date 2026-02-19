@@ -15,7 +15,7 @@ import (
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `Usage: term-type [mode]
+	fmt.Fprintf(os.Stderr, `Usage: term-type [--theme NAME] [mode]
 
 Modes:
   (none)       Open interactive menu
@@ -23,6 +23,10 @@ Modes:
   words N      Word count mode (N words)
   history      Show history
   clear        Clear history
+  themes       List available themes
+
+Options:
+  --theme NAME   Set color theme (auto-detects Omarchy theme by default)
 
 Piped input:
   echo "custom text" | term-type
@@ -30,18 +34,35 @@ Piped input:
 
 Examples:
   term-type
-  term-type time 30
+  term-type --theme catppuccin time 30
   term-type words 25
-  term-type history
-  term-type clear
+  term-type themes
 `)
 	os.Exit(1)
 }
 
-func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) {
+func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int, themeName string) {
 	args := os.Args[1:]
+
+	// Extract --theme flag
+	var filtered []string
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--theme" {
+			if i+1 < len(args) {
+				themeName = args[i+1]
+				i++ // skip value
+			} else {
+				fmt.Fprintf(os.Stderr, "Error: --theme requires a theme name\n")
+				os.Exit(1)
+			}
+		} else {
+			filtered = append(filtered, args[i])
+		}
+	}
+	args = filtered
+
 	if len(args) == 0 {
-		return "menu", false, 0, 0
+		return "menu", false, 0, 0, themeName
 	}
 
 	switch args[0] {
@@ -56,7 +77,7 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) 
 		}
 		// Generate roughly 3-4 words per second of typing
 		wc := n * 4
-		return "test", true, n, wc
+		return "test", true, n, wc, themeName
 	case "words", "w":
 		if len(args) < 2 {
 			usage()
@@ -66,9 +87,19 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) 
 			fmt.Fprintf(os.Stderr, "Error: words must be a positive number\n")
 			os.Exit(1)
 		}
-		return "test", false, 0, n
+		return "test", false, 0, n, themeName
 	case "history", "h":
-		return "history", false, 0, 0
+		return "history", false, 0, 0, themeName
+	case "themes":
+		fmt.Println("Available themes:")
+		for _, name := range themeOrder {
+			fmt.Printf("  %s\n", name)
+		}
+		detected := detectOmarchyTheme()
+		if detected != "" {
+			fmt.Printf("\nCurrent Omarchy theme: %s\n", detected)
+		}
+		os.Exit(0)
 	case "clear":
 		if err := clearHistory(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error clearing history: %v\n", err)
@@ -82,7 +113,7 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) 
 		fmt.Fprintf(os.Stderr, "Unknown mode: %s\n", args[0])
 		usage()
 	}
-	return "menu", false, 0, 0
+	return "menu", false, 0, 0, themeName
 }
 
 // readPipedInput reads from stdin if it's a pipe, normalizes whitespace,
@@ -135,7 +166,9 @@ func readPipedInput() (string, bool) {
 
 func main() {
 	pipedText, hasPiped := readPipedInput()
-	mode, argTimedMode, argTimeLimitSec, argWordCount := parseArgs()
+	mode, argTimedMode, argTimeLimitSec, argWordCount, themeName := parseArgs()
+
+	initTheme(themeName)
 
 	// Piped input overrides mode
 	if hasPiped {
@@ -167,6 +200,22 @@ func main() {
 	var startTestWithText func(text string)
 	var showResults func()
 	var showHistory func()
+	var showThemes func()
+	var rebuildMenu func()
+
+	rebuildMenu = func() {
+		menu := buildMenu(app, pages, startTest, showHistory, showThemes)
+		pages.AddAndSwitchToPage("menu", menu, true)
+	}
+
+	showThemes = func() {
+		picker := buildThemePicker(app, pages, func(name string) {
+			initTheme(name)
+			saveThemePreference(name)
+			rebuildMenu()
+		})
+		pages.AddAndSwitchToPage("themes", picker, true)
+	}
 
 	showHistory = func() {
 		histPage := buildHistory(app, pages, func() {
@@ -301,7 +350,7 @@ func main() {
 		}
 	}
 
-	menu := buildMenu(app, pages, startTest, showHistory)
+	menu := buildMenu(app, pages, startTest, showHistory, showThemes)
 	pages.AddPage("menu", menu, true, true)
 
 	switch mode {
