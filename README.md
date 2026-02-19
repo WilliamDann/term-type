@@ -6,7 +6,7 @@ A monkeytype-inspired typing speed test for your terminal, built with Go and [tv
 
 ## Features
 
-- **6 modes** — Timed (15s, 30s, 60s) and word count (10, 25, 50)
+- **Flexible modes** — Timed, word count, or pipe in your own text
 - **Live WPM** — Real-time words-per-minute display while typing
 - **Per-character feedback** — Correct, wrong, and pending characters colored distinctly
 - **History** — Results saved to `~/.local/share/term-type/history.json`
@@ -29,8 +29,15 @@ go install .
 ## Usage
 
 ```
-term-type
+term-type                # interactive menu
+term-type time 30        # timed mode (any number of seconds)
+term-type words 25       # word count mode (any number of words)
+term-type history        # view past results
+echo "custom text" | term-type   # type piped input
+cat quote.txt | term-type        # type from a file
 ```
+
+Short aliases `t`, `w`, `h` also work (e.g. `term-type t 15`).
 
 ### Controls
 

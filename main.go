@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -15,9 +19,13 @@ func usage() {
 
 Modes:
   (none)       Open interactive menu
-  time N       Timed mode (N = 15, 30, or 60 seconds)
-  words N      Word count mode (N = 10, 25, or 50)
+  time N       Timed mode (N seconds)
+  words N      Word count mode (N words)
   history      Show history
+
+Piped input:
+  echo "custom text" | term-type
+  cat quote.txt | term-type
 
 Examples:
   term-type
@@ -40,20 +48,20 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) 
 			usage()
 		}
 		n, err := strconv.Atoi(args[1])
-		if err != nil || (n != 15 && n != 30 && n != 60) {
-			fmt.Fprintf(os.Stderr, "Error: time must be 15, 30, or 60\n")
+		if err != nil || n <= 0 {
+			fmt.Fprintf(os.Stderr, "Error: time must be a positive number of seconds\n")
 			os.Exit(1)
 		}
-		// Generate enough words for the time limit
-		wc := map[int]int{15: 50, 30: 100, 60: 200}[n]
+		// Generate roughly 3-4 words per second of typing
+		wc := n * 4
 		return "test", true, n, wc
 	case "words", "w":
 		if len(args) < 2 {
 			usage()
 		}
 		n, err := strconv.Atoi(args[1])
-		if err != nil || (n != 10 && n != 25 && n != 50) {
-			fmt.Fprintf(os.Stderr, "Error: words must be 10, 25, or 50\n")
+		if err != nil || n <= 0 {
+			fmt.Fprintf(os.Stderr, "Error: words must be a positive number\n")
 			os.Exit(1)
 		}
 		return "test", false, 0, n
@@ -68,10 +76,75 @@ func parseArgs() (mode string, timedMode bool, timeLimitSec int, wordCount int) 
 	return "menu", false, 0, 0
 }
 
+// readPipedInput reads from stdin if it's a pipe, normalizes whitespace,
+// then reopens /dev/tty so tcell can read keyboard input.
+func readPipedInput() (string, bool) {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return "", false
+	}
+	if info.Mode()&os.ModeCharDevice != 0 {
+		// stdin is a terminal, not a pipe
+		return "", false
+	}
+
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil || len(data) == 0 {
+		return "", false
+	}
+
+	// Normalize: collapse all whitespace into single spaces, trim
+	text := strings.TrimSpace(string(data))
+	var b strings.Builder
+	inSpace := false
+	for _, r := range text {
+		if unicode.IsSpace(r) {
+			if !inSpace {
+				b.WriteRune(' ')
+				inSpace = true
+			}
+		} else {
+			b.WriteRune(r)
+			inSpace = false
+		}
+	}
+	text = b.String()
+	if text == "" {
+		return "", false
+	}
+
+	// Reopen /dev/tty as stdin so tcell gets keyboard input
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: cannot open /dev/tty for keyboard input: %v\n", err)
+		os.Exit(1)
+	}
+	os.Stdin = tty
+
+	return text, true
+}
+
 func main() {
+	pipedText, hasPiped := readPipedInput()
 	mode, argTimedMode, argTimeLimitSec, argWordCount := parseArgs()
 
+	// Piped input overrides mode
+	if hasPiped {
+		mode = "pipe"
+	}
+
 	app := tview.NewApplication()
+
+	// When stdin was a pipe, tell tcell to use /dev/tty directly
+	if hasPiped {
+		screen, err := tcell.NewScreen()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating screen: %v\n", err)
+			os.Exit(1)
+		}
+		app.SetScreen(screen)
+	}
+
 	pages := tview.NewPages()
 
 	var (
@@ -82,6 +155,7 @@ func main() {
 
 	// Forward declarations for mutual references
 	var startTest func(timedMode bool, timeLimitSec int, wordCount int)
+	var startTestWithText func(text string)
 	var showResults func()
 	var showHistory func()
 
@@ -108,9 +182,30 @@ func main() {
 
 		resultsPage := buildResults(app, pages, currentState, func() {
 			// Retry with same settings
-			startTest(currentState.TimedMode, currentState.TimeLimitSec, currentState.WordCount)
+			if currentState.PipedText != "" {
+				startTestWithText(currentState.PipedText)
+			} else {
+				startTest(currentState.TimedMode, currentState.TimeLimitSec, currentState.WordCount)
+			}
 		}, showHistory)
 		pages.AddAndSwitchToPage("results", resultsPage, true)
+	}
+
+	// startTestWithText starts a typing test using provided text (for piped input)
+	startTestWithText = func(text string) {
+		wordCount := len(strings.Fields(text))
+		currentState = NewTestState(text, false, 0, wordCount)
+		currentState.PipedText = text
+
+		onFinish := func() {
+			showResults()
+		}
+		onEscape := func() {
+			pages.SwitchToPage("menu")
+		}
+
+		typingBox := NewTypingBox(currentState, onFinish, onEscape)
+		pages.AddAndSwitchToPage("typing", typingBox, true)
 	}
 
 	startTest = func(timedMode bool, timeLimitSec int, wordCount int) {
@@ -201,6 +296,8 @@ func main() {
 	switch mode {
 	case "test":
 		startTest(argTimedMode, argTimeLimitSec, argWordCount)
+	case "pipe":
+		startTestWithText(pipedText)
 	case "history":
 		showHistory()
 	}

@@ -108,7 +108,7 @@ func buildResults(app *tview.Application, pages *tview.Pages, state *TestState, 
 	statsView.SetBackgroundColor(colorBackground)
 
 	helpView := tview.NewTextView().
-		SetText("[enter] retry  [tab] menu  [h] history").
+		SetText("[enter] retry  [tab] menu  [h] history  [q] quit").
 		SetTextAlign(tview.AlignCenter).
 		SetTextColor(colorSubtle)
 	helpView.SetBackgroundColor(colorBackground)
@@ -136,8 +136,12 @@ func buildResults(app *tview.Application, pages *tview.Pages, state *TestState, 
 			pages.SwitchToPage("menu")
 			return nil
 		case tcell.KeyRune:
-			if event.Rune() == 'h' {
+			switch event.Rune() {
+			case 'h':
 				onHistory()
+				return nil
+			case 'q':
+				app.Stop()
 				return nil
 			}
 		}

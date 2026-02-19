@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type TestState struct {
 	Target    string // the full target text
@@ -14,6 +17,7 @@ type TestState struct {
 	TimedMode    bool
 	TimeLimitSec int
 	WordCount    int
+	PipedText    string // original piped text for retry
 }
 
 func NewTestState(target string, timedMode bool, timeLimitSec int, wordCount int) *TestState {
@@ -134,34 +138,11 @@ func (s *TestState) Accuracy() float64 {
 }
 
 func (s *TestState) ModeString() string {
+	if s.PipedText != "" {
+		return fmt.Sprintf("pipe (%d words)", s.WordCount)
+	}
 	if s.TimedMode {
-		return formatDuration(s.TimeLimitSec)
+		return fmt.Sprintf("%ds", s.TimeLimitSec)
 	}
-	return formatWordCount(s.WordCount)
-}
-
-func formatDuration(sec int) string {
-	switch sec {
-	case 15:
-		return "15s"
-	case 30:
-		return "30s"
-	case 60:
-		return "60s"
-	default:
-		return "?s"
-	}
-}
-
-func formatWordCount(n int) string {
-	switch n {
-	case 10:
-		return "10 words"
-	case 25:
-		return "25 words"
-	case 50:
-		return "50 words"
-	default:
-		return "? words"
-	}
+	return fmt.Sprintf("%d words", s.WordCount)
 }
