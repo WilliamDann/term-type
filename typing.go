@@ -44,6 +44,17 @@ func (t *TypingBox) Draw(screen tcell.Screen) {
 		return
 	}
 
+	// Add side padding (10% of width on each side, minimum 4 chars)
+	pad := width / 10
+	if pad < 4 {
+		pad = 4
+	}
+	if pad*2 >= width {
+		pad = 0
+	}
+	x += pad
+	width -= pad * 2
+
 	target := []rune(t.state.Target)
 	input := t.state.Input
 	cursorPos := len(input)

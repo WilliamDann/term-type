@@ -91,6 +91,14 @@ var themes = map[string]themeColors{
 		errColor:   "#D35F5F",
 		dim:        "#8a8a8d",
 	},
+	"miasma": {
+		background: "#222222",
+		foreground: "#c2c2b0",
+		accent:     "#78824b",
+		cursor:     "#c7c7c7",
+		errColor:   "#685742",
+		dim:        "#666666",
+	},
 	"nord": {
 		background: "#2e3440",
 		foreground: "#d8dee9",
@@ -131,6 +139,22 @@ var themes = map[string]themeColors{
 		errColor:   "#f7768e",
 		dim:        "#444b6a",
 	},
+	"vantablack": {
+		background: "#0d0d0d",
+		foreground: "#ffffff",
+		accent:     "#8d8d8d",
+		cursor:     "#ffffff",
+		errColor:   "#a4a4a4",
+		dim:        "#fdfdfd",
+	},
+	"white": {
+		background: "#ffffff",
+		foreground: "#000000",
+		accent:     "#6e6e6e",
+		cursor:     "#000000",
+		errColor:   "#2a2a2a",
+		dim:        "#c0c0c0",
+	},
 }
 
 var themeOrder = []string{
@@ -143,11 +167,14 @@ var themeOrder = []string{
 	"hackerman",
 	"kanagawa",
 	"matte-black",
+	"miasma",
 	"nord",
 	"osaka-jade",
 	"ristretto",
 	"rose-pine",
 	"tokyo-night",
+	"vantablack",
+	"white",
 }
 
 func hexToColor(hex string) tcell.Color {
